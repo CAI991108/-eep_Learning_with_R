@@ -1,0 +1,207 @@
+---
+title: "Understanding_Recurrent_Neural_Network"
+author: "Z.CAI"
+date: "2022年1月10日"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Understanding Recurrent Neural Networks
+
+pseudocode RNN
+
+state_t = 0 
+for (input_t in input_sequence) {
+  output_t <- f(input_t, state_t)
+  state_t <- output_t
+}
+
+
+more detailed pseudocode for the RNN 
+
+state_t <- 0
+for (input_t in input_sequence) {
+  output_t <- activation(dot(W, input_t) + dot(U, state_t) + b)
+  state_t <- output_t
+}
+
+
+R implementation of a simple RNN
+```{r}
+timesteps <- 100
+input_features <- 32
+output_features <- 64
+
+random_array <- function(dim) {
+  array(runif(prod(dim)), dim = dim)
+}
+
+inputs <- random_array(dim = c(timesteps, input_features))
+state_t <- rep_len(0, length = c(output_features))
+
+W <- random_array(dim = c(output_features, input_features))
+U <- random_array(dim = c(output_features, output_features))
+b <- random_array(dim = c(output_features, 1))
+
+output_sequence <- array(0, dim = c(timesteps, output_features))
+for (i in 1:nrow(inputs)) {
+  input_t <- inputs[i, ]
+  output_t <- tanh(as.numeric((W %*% input_t) + (U %*% state_t) + b))
+  output_sequence[i, ] <- as.numeric(output_t)
+  state_t <- output_t
+}
+
+str(output_sequence)
+```
+
+## A Recurrent Layer in Keras
+```{r}
+library(keras)
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32)
+
+summary(model)
+```
+
+example returns the full state sequence:
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE)
+
+summary(model)
+
+```
+
+all intermediate layers to return full sequences 
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = 10000, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>% 
+  layer_simple_rnn(units = 32, return_sequences = TRUE) %>% 
+  layer_simple_rnn(units = 32)
+
+summary(model)
+
+```
+
+preparing the IMDB data
+```{r}
+library(keras)
+
+max_features <- 10000
+maxlen <- 500
+batch_size <- 32
+
+cat("Loading data...\n")
+imdb <- dataset_imdb(num_words = max_features)
+c(c(input_train, y_train), c(input_test, y_test)) %<-% imdb
+cat(length(input_train), "train sequences\n")
+cat(length(input_test), "test sequences")
+
+cat("Pad sequences (samples x time)\n")
+input_train <- pad_sequences(input_train, maxlen = maxlen)
+input_test <- pad_sequences(input_test, maxlen = maxlen)
+cat("input_train shape:", dim(input_train), "\n")
+cat("input_test shape:", dim(input_test), "\n")
+```
+
+training the model with embedding andsimple RNN layers
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 32) %>% 
+  layer_simple_rnn(units = 32) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+
+```
+
+```{r}
+plot(history)
+```
+
+# Understanding the LSTM and GRU layers
+
+
+y = activation(dot(state_t, U) + dot(input_t, W) + b)
+
+pseudocode details of the LSTM architecture:
+
+output_t = activation(dot(state_t, Uo) + dot(input_t, Wo) + dot(C_t, Vo) + bo)
+i_t = activation(dot(state_t, Ui) + dot(input_t, Wi) + bi)
+f_t = activation(dot(state_t, Uf) + dot(input_t, Wf) + bf)
+k_t = activation(dot(state_t, Uk) + dot(input_t, Wk) + bk)
+
+c_t+1 = i_t * k_t + c_t * f_t
+
+# A concrete LSTM example in Keras
+
+using the LSTM layer in Keras
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 32) %>% 
+  layer_lstm(units = 32) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  input_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

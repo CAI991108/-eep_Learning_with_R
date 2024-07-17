@@ -1,0 +1,138 @@
+---
+title: "Usinig_Bidirectional_RNNs"
+author: "Z.CAI"
+date: "2022年1月13日"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Using bidirectional RNNs
+
+training and evaluating an LSTM using reversed sequences
+```{r}
+library(keras)
+
+max_features <- 10000
+maxlen <- 500
+
+imdb <- dataset_imdb(num_words = max_features)
+c(c(x_train, y_train), c(x_test, y_test)) %<-% imdb
+
+x_train <- lapply(x_train, rev)
+x_test <- lapply(x_test, rev)
+
+x_train <- pad_sequences(x_train, maxlen = maxlen)
+x_test <- pad_sequences(x_test, maxlen = maxlen)
+```
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 128) %>% 
+  layer_lstm(units = 32) %>% 
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  x_train, y_train,
+  epochs = 10, 
+  batch_size = 128,
+  validation_split = 0.2
+)
+```
+
+```{r}
+plot(history)
+```
+
+trianing and evaluating a bidirectional LSTM
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 32) %>% 
+  bidirectional(
+    layer_lstm(units = 32)
+  ) %>%
+  layer_dense(units = 1, activation = "sigmoid")
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy",
+  metrics = c("acc")
+)
+
+history <- model %>% fit(
+  x_train, y_train,
+  epochs = 10,
+  batch_size = 128,
+  validation_split = 0.2
+)
+
+```
+
+training a bidirectional GRU
+```{r}
+model <- keras_model_sequential() %>% 
+  bidirectional(
+    layer_gru(units = 32), input_shape = list(NULL, dim(data)[[-1]])
+  ) %>% 
+  layer_dense(units = 1)
+
+model %>% compile(
+  optimizer = optimizer_rmsprop(),
+  loss = "mae"
+)
+
+history <- model %>% fit(
+  train_gen,
+  steps_per_epoch = 500,
+  epochs = 40, 
+  validation_data = val_gen,
+  validation_steps = val_steps
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

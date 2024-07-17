@@ -1,0 +1,43 @@
+---
+title: "Deep_Learning_for_Text_and_Sequences"
+author: "Z.CAI"
+date: "2021年12月22日"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Deep Learning for Text and Sequences
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

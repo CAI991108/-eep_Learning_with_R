@@ -1,0 +1,198 @@
+---
+title: "Inspecting_and_Monitoring_Deep_Learning_Models_Using_Keras_Callbackes_and_Tensorboard"
+author: "Z.CAI"
+date: "2022年1月17日"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Using callbacks to act on a model during training
+
+callback_model_checkpoint()
+callback_early_stopping()
+callback_learning_rate_scheduler()
+callback_reduce_lr_on_plateau()
+callback_csv_looger()
+
+the model-checkpoint and early-stopping callbacks
+```{r}
+library(keras)
+
+callbacks_list <- list(
+  callback_early_stopping(
+    monitor = "acc",
+    patience = 1
+  ),
+  callback_model_checkpoint(
+    filepath = "my_model.h5",
+    monitor = "val_loss",
+    save_best_only = TRUE
+  )
+)
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy", 
+  metrics = c("acc")
+)
+
+model %>% fit(
+  x, y,
+  epochs = 10,
+  batch_size = 32,
+  callbacks = callbacks_list,
+  validation_data = list(x_val, y_val)
+)
+```
+
+the reduce-leraning-rate-on-plateau callback
+```{r}
+callbacks_list <- list(
+  callback_reduce_lr_on_plateau(
+    monitor = "val_loss",
+    factor = 0.1,
+    patience = 10
+  )
+)
+
+model %>% fit(
+  x, y, 
+  epochs = 10, 
+  batch_size = 32, 
+  callbacks = callbacks_list,
+  validation_data = list(x_val, y_val)
+)
+```
+
+writing own callback
+
+on_epoch_begin
+on_epoc_end
+on_batch_begin
+on_batch_end
+on_train_begin
+on_train_end
+
+example saving a list of losses over each batch during training
+```{r}
+library(keras)
+library(R6)
+
+LossHistory <- R6Class("LossHistory", 
+                       inherit = KerasCallback,
+                       public = list(
+                         losses = NULL,
+                         on_batch_end = function(batch, logs = list()) {
+                           self$losses <- c(self$losses, logs[["loss"]])
+                         }
+                       ))
+
+history <- LossHistory$new()
+
+model %>% fit(
+  x, y,
+  batch_size = 128,
+  epochs = 20,
+  callbacks = list(history)
+)
+
+str(history$losses)
+```
+
+## Introduction to TensorBoard: the TensorFlow visualisation framework
+
+text-classification model to use with TensorBoard
+```{r}
+library(keras)
+
+max_features <- 2000
+max_len <- 500
+
+imdb <- dataset_imdb(num_words = max_features)
+c(c(x_train, y_train), c(x_test, y_test)) %<-% imdb
+x_train <- pad_sequences(x_train, maxlen = max_len)
+x_text = pad_sequences(x_test, maxlen = max_len)
+
+model <- keras_model_sequential() %>% 
+  layer_embedding(input_dim = max_features, output_dim = 128,
+                  input_length = max_len, name = "embed") %>% 
+  layer_conv_1d(filters = 32, kernel_size = 7, activation = "relu") %>% 
+  layer_max_pooling_1d(pool_size = 5) %>% 
+  layer_conv_1d(filters = 32, kernel_size = 7, activation = "relu") %>% 
+  layer_global_max_pooling_1d() %>% 
+  layer_dense(units = 1)
+
+summary(model)
+
+model %>% compile(
+  optimizer = "rmsprop",
+  loss = "binary_crossentropy", 
+  metrics = c("acc")
+)
+
+```
+
+creating a directory for TensorBoard log files
+```{r}
+dir.create("my_log_dir")
+```
+
+training the model with a TensorBoard callback
+```{r}
+tensorboard("my_log_dir")
+
+callbacks = list(
+  callback_tensorboard(
+    log_dir = "my_log_dir",
+    histogram_freq = 1,
+    embeddings_freq = 1,
+  )
+)
+
+history <- model %>% fit(
+  x_train, y_train,
+  epochs = 20, 
+  batch_size = 128,
+  validation_split = 0.2,
+  callbacks = callbacks
+)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

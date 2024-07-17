@@ -1,0 +1,139 @@
+---
+title: "Fundamentals_of_Machine_Learning"
+author: "Z.CAI"
+date: "2021年11月30日"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# FUNDAMENTALS OF MACHINE LEARNING
+
+# Evaluate Machine_Leraning Models
+
+hold-out validation
+```{r}
+indices <- sample(1:nrow(data), size = 0.80 * nrow(data))
+evaluation_data <- data[-indices, ] 
+training_data <- data[indices, ]
+
+model <- get_model() 
+model %>% train(training_data) 
+validation_score <- model %>% evaluate(validation_data) 
+
+model <- get_model() 
+model %>% train(data) 
+test_score <- model %>% evaluate(test_data)
+```
+
+K-fold cross-validation
+```{r}
+k <- 4
+indices <- sample(1:nrow(data))
+folds <- cut(indices, breaks = k, labels = FALSE)
+
+validation_scores <- c() 
+for (i in 1:k) {
+  
+  validation_indices <- which(folds == i, arr.ind = TRUE)
+  validation_data <- data[validation_indices,] 
+  training_data <- data[-validation_indices,] 
+  
+  model <- get_model() 
+  model %>% train(training_data)
+  results <- model %>% evaluate(validation_data)
+  validation_scores <- c(validation_scores, results$accuracy)
+}
+
+validation_score <- mean(validation_scores) 
+
+model <- get_model()
+model %>% train(data) 
+results <- model %>% evaluate(test_data)
+```
+
+# Data Processing for Neural Network
+
+normalise the data
+```{r}
+mean <- apply(train_data, 2, mean) 
+std <- apply(train_data, 2, sd)
+train_data <- scale(train_data, center = mean, scale = std) 
+test_data <- scale(test_data, center = mean, scale = std)
+```
+
+# Overfitting and Underfitting
+
+The most common way to prevent overfitting in neural networks:
+- get more training data'
+- reduce the capacity of the network
+- add weight regularisation
+- add dropout
+
+original
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+version of the mode with lower capacity
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 4, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 4, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+version of the model with higher capacity
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 512, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 512, activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+adding L2 weight regularsation to the model
+
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001), 
+              activation = "relu", input_shape = c(10000)) %>% 
+  layer_dense(units = 16, kernel_regularizer = regularizer_l2(0.001), 
+              activation = "relu") %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+different weight regularisers available in Keras
+
+```{r}
+regularizer_l1(0.001) 
+regularizer_l1_l2(l1 = 0.001, l2 = 0.001)
+```
+
+adding dropout to the IMDB network
+```{r}
+library(keras)
+
+model <- keras_model_sequential() %>%
+  layer_dense(units = 16, activation = "relu", input_shape = c(10000)) %>% 
+  layer_dropout(rate = 0.5) %>%
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dropout(rate = 0.5) %>%
+  layer_dense(units = 1, activation = "sigmoid")
+```
+
+
+
+
+
